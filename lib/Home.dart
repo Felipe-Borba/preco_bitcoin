@@ -11,18 +11,11 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  String _preco = "0";
-
-  void _recuperarPreco() async {
+  Future<Map> _recuperarPreco() async {
     Uri url = Uri.parse("https://blockchain.info/ticker");
     http.Response response = await http.get(url);
-
-    Map<String, dynamic> retorno = json.decode(response.body);
-    setState(() {
-      _preco = retorno["BRL"]["buy"].toString();
-    });
-
-    print("Resultado : ${retorno["BRL"]["buy"]}");
+    await Future.delayed(Duration(seconds: 10));
+    return json.decode(response.body);
   }
 
   @override
@@ -37,9 +30,31 @@ class _HomeState extends State<Home> {
               Image.asset("assets/images/bitcoin.png"),
               Padding(
                 padding: const EdgeInsets.only(top: 30, bottom: 30),
-                child: Text(
-                  "R\$ $_preco",
-                  style: const TextStyle(fontSize: 35),
+                child: FutureBuilder<Map>(
+                  future: _recuperarPreco(),
+                  builder: (context, snapshot) {
+                    String resultado;
+                    switch (snapshot.connectionState) {
+                      case ConnectionState.none:
+                      case ConnectionState.waiting:
+                        print("conexao waiting");
+                        resultado = "Carregando...";
+                        break;
+                      case ConnectionState.active:
+                      case ConnectionState.done:
+                        print("conexao done");
+                        if (snapshot.hasError) {
+                          resultado = "Erro ao carregar os dados.";
+                        } else {
+                          double valor = snapshot.data!["BRL"]["buy"];
+                          resultado = "Preço do bitcoin: ${valor.toString()} ";
+                        }
+                        break;
+                    }
+                    return Center(
+                      child: Text(resultado),
+                    );
+                  },
                 ),
               ),
               MaterialButton(
